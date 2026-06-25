@@ -3,10 +3,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
+from app.dependencies import current_user
 from app.models import Alert
 from app.schemas import AlertRead
 
-router = APIRouter(prefix="/alerts", tags=["alerts"])
+router = APIRouter(prefix="/alerts", tags=["alerts"], dependencies=[Depends(current_user)])
 
 
 @router.get("", response_model=list[AlertRead])

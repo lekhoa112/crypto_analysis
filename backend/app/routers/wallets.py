@@ -5,10 +5,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
+from app.dependencies import current_user
 from app.models import Wallet
 from app.schemas import WalletCreate, WalletRead, WalletUpdate
 
-router = APIRouter(prefix="/wallets", tags=["wallets"])
+router = APIRouter(prefix="/wallets", tags=["wallets"], dependencies=[Depends(current_user)])
 
 
 @router.get("", response_model=list[WalletRead])

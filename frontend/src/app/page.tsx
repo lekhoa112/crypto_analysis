@@ -1,13 +1,15 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Alert, Wallet, api, formatUsd } from "@/lib/api";
+import { Alert, User, Wallet, api, clearAuthTokens, formatUsd, getAuthTokens, setAuthTokens } from "@/lib/api";
 
 const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? "ws://127.0.0.1:8000/ws/alerts";
 
 type View = "dashboard" | "wallets" | "history" | "settings";
 
 export default function Home() {
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<View>("dashboard");
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -32,10 +34,38 @@ export default function Home() {
   }
 
   useEffect(() => {
-    refresh();
+    async function loadSession() {
+      const { accessToken } = getAuthTokens();
+      if (!accessToken) {
+        setInitializing(false);
+        return;
+      }
+
+      try {
+        setUser(await api.me());
+      } catch {
+        clearAuthTokens();
+      } finally {
+        setInitializing(false);
+      }
+    }
+
+    loadSession();
   }, []);
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    refresh();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
     const socket = new WebSocket(wsUrl);
     socket.onopen = () => setStatus("Live");
     socket.onclose = () => setStatus("Offline");
@@ -47,13 +77,43 @@ export default function Home() {
       }
     };
     return () => socket.close();
-  }, []);
+  }, [user]);
 
   const activeWallets = wallets.filter((wallet) => wallet.is_active).length;
   const totalAlertValue = useMemo(
     () => alerts.reduce((sum, alert) => sum + alert.usd_value, 0),
     [alerts],
   );
+
+  async function logout() {
+    const { refreshToken } = getAuthTokens();
+    if (refreshToken) {
+      try {
+        await api.logout(refreshToken);
+      } catch {
+        // Local logout should still complete if the server token is already invalid.
+      }
+    }
+    clearAuthTokens();
+    setUser(null);
+    setWallets([]);
+    setAlerts([]);
+    setView("dashboard");
+  }
+
+  if (initializing) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-crypto-bg px-5 text-crypto-text">
+        <div className="rounded-panel border border-white/10 bg-crypto-card px-5 py-4 text-sm font-bold text-crypto-muted">
+          Loading session
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen onAuthenticated={setUser} />;
+  }
 
   return (
     <main className="min-h-screen bg-crypto-bg px-5 py-5 text-crypto-text lg:px-8">
@@ -95,6 +155,9 @@ export default function Home() {
               <h2 className="mt-2 text-3xl font-black">Whale transaction alerts</h2>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-white/5 px-3 py-2 text-sm font-bold text-crypto-muted">
+                {user.email}
+              </span>
               <span className="rounded-full bg-crypto-primary/10 px-3 py-2 text-sm font-black text-crypto-primary">
                 {status}
               </span>
@@ -103,6 +166,12 @@ export default function Home() {
                 className="rounded-panel bg-crypto-secondary px-4 py-2 text-sm font-black text-white"
               >
                 Refresh
+              </button>
+              <button
+                onClick={logout}
+                className="rounded-panel bg-white/10 px-4 py-2 text-sm font-black text-white hover:bg-white/15"
+              >
+                Logout
               </button>
             </div>
           </header>
@@ -122,6 +191,145 @@ export default function Home() {
             <Settings threshold={threshold} onSaved={(value) => setThreshold(value)} />
           ) : null}
         </section>
+      </div>
+    </main>
+  );
+}
+
+function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: User) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    setBusy(true);
+
+    try {
+      if (mode === "register") {
+        await api.register({
+          email,
+          password,
+          confirm_password: confirmPassword,
+          full_name: fullName || undefined,
+        });
+      }
+
+      const tokens = await api.login({ email, password });
+      setAuthTokens(tokens);
+      onAuthenticated(await api.me());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Authentication failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-crypto-bg px-5 py-8 text-crypto-text">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1fr_420px]">
+        <section>
+          <div className="flex h-12 w-12 items-center justify-center rounded-panel bg-crypto-primary text-xl font-black text-crypto-bg">
+            BTC
+          </div>
+          <h1 className="mt-6 max-w-2xl text-4xl font-black leading-tight md:text-5xl">
+            Whale Alert
+          </h1>
+          <p className="mt-4 max-w-xl text-base font-medium leading-7 text-crypto-muted">
+            Sign in to manage tracked wallets, alert thresholds, and realtime transaction history.
+          </p>
+        </section>
+
+        <form onSubmit={submit} className="rounded-panel border border-white/10 bg-crypto-card p-5">
+          <div className="mb-5 grid grid-cols-2 gap-2 rounded-panel bg-white/5 p-1">
+            <button
+              type="button"
+              onClick={() => setMode("login")}
+              className={`h-10 rounded-panel text-sm font-black ${
+                mode === "login" ? "bg-crypto-primary text-crypto-bg" : "text-crypto-muted"
+              }`}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("register")}
+              className={`h-10 rounded-panel text-sm font-black ${
+                mode === "register" ? "bg-crypto-primary text-crypto-bg" : "text-crypto-muted"
+              }`}
+            >
+              Register
+            </button>
+          </div>
+
+          <div className="grid gap-3">
+            {mode === "register" ? (
+              <label className="grid gap-2 text-sm font-bold text-crypto-muted">
+                Full name
+                <input
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  className="h-11 rounded-panel border border-white/10 bg-white/5 px-3 text-crypto-text outline-none focus:border-crypto-primary"
+                />
+              </label>
+            ) : null}
+
+            <label className="grid gap-2 text-sm font-bold text-crypto-muted">
+              Email
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="h-11 rounded-panel border border-white/10 bg-white/5 px-3 text-crypto-text outline-none focus:border-crypto-primary"
+                required
+              />
+            </label>
+
+            <label className="grid gap-2 text-sm font-bold text-crypto-muted">
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="h-11 rounded-panel border border-white/10 bg-white/5 px-3 text-crypto-text outline-none focus:border-crypto-primary"
+                required
+                minLength={mode === "register" ? 8 : undefined}
+              />
+            </label>
+
+            {mode === "register" ? (
+              <label className="grid gap-2 text-sm font-bold text-crypto-muted">
+                Confirm password
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  className="h-11 rounded-panel border border-white/10 bg-white/5 px-3 text-crypto-text outline-none focus:border-crypto-primary"
+                  required
+                  minLength={8}
+                />
+              </label>
+            ) : null}
+          </div>
+
+          {error ? (
+            <div className="mt-4 rounded-panel border border-crypto-danger/40 bg-crypto-danger/10 p-3 text-sm font-bold text-crypto-danger">
+              {error}
+            </div>
+          ) : null}
+
+          <button
+            disabled={busy}
+            className="mt-5 h-11 w-full rounded-panel bg-crypto-primary px-4 text-sm font-black text-crypto-bg disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {busy ? "Please wait" : mode === "login" ? "Login" : "Create account"}
+          </button>
+        </form>
       </div>
     </main>
   );

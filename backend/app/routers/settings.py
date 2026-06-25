@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
+from app.dependencies import current_user
 from app.schemas import ThresholdRead, ThresholdUpdate
 from app.services.settings import get_alert_threshold, set_alert_threshold
 
-router = APIRouter(prefix="/settings", tags=["settings"])
+router = APIRouter(prefix="/settings", tags=["settings"], dependencies=[Depends(current_user)])
 
 
 @router.get("/threshold", response_model=ThresholdRead)
