@@ -199,6 +199,7 @@ const authApiBase = "http://127.0.0.1:8000";
 const accessTokenKey = "crypto_analysis_access_token";
 const refreshTokenKey = "crypto_analysis_refresh_token";
 let authMode = "login";
+let isAuthenticated = false;
 
 function getAuthTokens() {
   return {
@@ -283,6 +284,8 @@ function setAuthMode(mode) {
 function showApp() {
   const authScreen = document.querySelector("#authScreen");
   const appShell = document.querySelector("#appShell");
+  isAuthenticated = true;
+  document.body.classList.remove("auth-locked");
   if (authScreen) authScreen.hidden = true;
   if (appShell) appShell.hidden = false;
   loadWhaleModule();
@@ -292,6 +295,8 @@ function showApp() {
 function showLogin() {
   const authScreen = document.querySelector("#authScreen");
   const appShell = document.querySelector("#appShell");
+  isAuthenticated = false;
+  document.body.classList.add("auth-locked");
   if (authScreen) authScreen.hidden = false;
   if (appShell) appShell.hidden = true;
   if (whaleSocket) {
@@ -932,6 +937,8 @@ const appViews = {
 };
 
 function setAppView(viewName) {
+  if (!isAuthenticated) return;
+
   const view = appViews[viewName] || appViews.dashboard;
   const visibleSections = new Set(view.sections);
 
