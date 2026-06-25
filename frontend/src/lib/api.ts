@@ -37,6 +37,12 @@ export type TokenPair = {
   expires_in: number;
 };
 
+export type CaptchaChallenge = {
+  token: string;
+  question: string;
+  expires_in: number;
+};
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const ACCESS_TOKEN_KEY = "crypto_analysis_access_token";
 const REFRESH_TOKEN_KEY = "crypto_analysis_refresh_token";
@@ -104,7 +110,13 @@ async function request<T>(path: string, init?: RequestInit, retryOnUnauthorized 
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `Request failed: ${response.status}`);
+    let message = text;
+    try {
+      message = JSON.parse(text).detail || text;
+    } catch {
+      message = text;
+    }
+    throw new Error(message || `Request failed: ${response.status}`);
   }
 
   if (response.status === 204) {
@@ -115,9 +127,17 @@ async function request<T>(path: string, init?: RequestInit, retryOnUnauthorized 
 }
 
 export const api = {
-  login: (payload: { email: string; password: string }) =>
+  captcha: () => request<CaptchaChallenge>("/auth/captcha", undefined, false),
+  login: (payload: { email: string; password: string; captcha_token: string; captcha_answer: string }) =>
     request<TokenPair>("/auth/login", { method: "POST", body: JSON.stringify(payload) }, false),
-  register: (payload: { email: string; password: string; confirm_password: string; full_name?: string }) =>
+  register: (payload: {
+    email: string;
+    password: string;
+    confirm_password: string;
+    full_name?: string;
+    captcha_token: string;
+    captcha_answer: string;
+  }) =>
     request<User>("/auth/register", { method: "POST", body: JSON.stringify(payload) }, false),
   logout: (refresh_token: string) =>
     request<{ message: string }>("/auth/logout", { method: "POST", body: JSON.stringify({ refresh_token }) }, false),

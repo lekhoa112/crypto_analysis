@@ -200,6 +200,7 @@ const accessTokenKey = "crypto_analysis_access_token";
 const refreshTokenKey = "crypto_analysis_refresh_token";
 let authMode = "login";
 let isAuthenticated = false;
+let captchaToken = "";
 
 function getAuthTokens() {
   return {
@@ -231,7 +232,13 @@ async function authRequest(path, options = {}, includeAuth = true) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || `HTTP ${response.status}`);
+    let message = text;
+    try {
+      message = JSON.parse(text).detail || text;
+    } catch {
+      message = text;
+    }
+    throw new Error(message || `HTTP ${response.status}`);
   }
 
   if (response.status === 204) return null;
@@ -263,6 +270,21 @@ function showAuthError(message) {
   error.hidden = !message;
 }
 
+async function loadCaptcha() {
+  const question = document.querySelector("#captchaQuestion");
+  const answer = document.querySelector("#captchaAnswer");
+  try {
+    const challenge = await authRequest("/auth/captcha", {}, false);
+    captchaToken = challenge.token;
+    if (question) question.textContent = challenge.question;
+    if (answer) answer.value = "";
+  } catch (error) {
+    captchaToken = "";
+    if (question) question.textContent = "Captcha unavailable";
+    showAuthError("Cannot load captcha. Check backend server.");
+  }
+}
+
 function setAuthMode(mode) {
   authMode = mode;
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
@@ -270,6 +292,9 @@ function setAuthMode(mode) {
   });
   document.querySelectorAll(".auth-register-only").forEach((field) => {
     field.hidden = mode !== "register";
+    field.querySelectorAll("input").forEach((input) => {
+      input.disabled = mode !== "register";
+    });
   });
 
   const submit = document.querySelector("#authSubmit");
@@ -277,8 +302,10 @@ function setAuthMode(mode) {
 
   const password = document.querySelector("#authPassword");
   const confirmPassword = document.querySelector("#authConfirmPassword");
+  const fullName = document.querySelector("#authFullName");
   if (password) password.minLength = mode === "register" ? 8 : 0;
   if (confirmPassword) confirmPassword.required = mode === "register";
+  if (fullName) fullName.required = false;
 }
 
 function showApp() {
@@ -310,8 +337,17 @@ async function initAuthGate() {
     button.addEventListener("click", () => {
       setAuthMode(button.dataset.authMode || "login");
       showAuthError("");
+      loadCaptcha();
     });
   });
+
+  const captchaRefresh = document.querySelector("#captchaRefresh");
+  if (captchaRefresh) {
+    captchaRefresh.addEventListener("click", () => {
+      showAuthError("");
+      loadCaptcha();
+    });
+  }
 
   const form = document.querySelector("#authForm");
   if (form) {
@@ -320,6 +356,7 @@ async function initAuthGate() {
       const submit = document.querySelector("#authSubmit");
       const email = document.querySelector("#authEmail").value.trim();
       const password = document.querySelector("#authPassword").value;
+      const captchaAnswer = document.querySelector("#captchaAnswer").value.trim();
       showAuthError("");
       if (submit) submit.disabled = true;
 
@@ -334,6 +371,8 @@ async function initAuthGate() {
                 password,
                 confirm_password: document.querySelector("#authConfirmPassword").value,
                 full_name: document.querySelector("#authFullName").value.trim() || undefined,
+                captcha_token: captchaToken,
+                captcha_answer: captchaAnswer,
               }),
             },
             false,
@@ -342,7 +381,15 @@ async function initAuthGate() {
 
         const tokens = await authRequest(
           "/auth/login",
-          { method: "POST", body: JSON.stringify({ email, password }) },
+          {
+            method: "POST",
+            body: JSON.stringify({
+              email,
+              password,
+              captcha_token: captchaToken,
+              captcha_answer: captchaAnswer,
+            }),
+          },
           false,
         );
         setAuthTokens(tokens);
@@ -350,6 +397,7 @@ async function initAuthGate() {
         showApp();
       } catch (error) {
         showAuthError(error.message || "Authentication failed");
+        loadCaptcha();
       } finally {
         if (submit) submit.disabled = false;
       }
@@ -377,6 +425,7 @@ async function initAuthGate() {
   }
 
   setAuthMode("login");
+  loadCaptcha();
 
   try {
     await authRequest("/auth/me");

@@ -1,12 +1,15 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
     app_name: str = "Crypto Analysis"
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/crypto_analysis"
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8010,http://127.0.0.1:8010"
     alert_threshold_usd: float = 100000
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
@@ -20,7 +23,7 @@ class Settings(BaseSettings):
     auth_login_max_failures: int = 5
     auth_lockout_minutes: int = 15
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", env_file_encoding="utf-8")
 
     @property
     def cors_origin_list(self) -> list[str]:

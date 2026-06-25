@@ -1,4 +1,5 @@
 import hashlib
+import random
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -14,6 +15,7 @@ from app.models import PasswordResetToken, RefreshToken, SecurityLog, User
 from app.services.email import send_password_reset_email
 
 settings = get_settings()
+LOCKED_LOGIN_ERROR = "Tai khoan dang bi khoa tam thoi. Vui long thu lai sau."
 
 GENERIC_LOGIN_ERROR = "Email hoặc mật khẩu không đúng"
 FORGOT_PASSWORD_MESSAGE = "Nếu email tồn tại, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu"
@@ -28,6 +30,7 @@ class ClientContext:
 _register_attempts: dict[str, list[datetime]] = {}
 _login_failures: dict[str, list[datetime]] = {}
 _lockouts: dict[str, datetime] = {}
+_captcha_store: dict[str, tuple[str, datetime]] = {}
 
 
 def now_utc() -> datetime:
@@ -71,6 +74,27 @@ def decode_access_token(token: str) -> dict:
 
 def generate_secure_token() -> str:
     return secrets.token_urlsafe(48)
+
+
+def create_captcha_challenge() -> tuple[str, str, int]:
+    first = random.randint(2, 9)
+    second = random.randint(2, 9)
+    token = secrets.token_urlsafe(32)
+    expires_in = 180
+    _captcha_store[token] = (str(first + second), now_utc() + timedelta(seconds=expires_in))
+    return token, f"{first} + {second} = ?", expires_in
+
+
+def verify_captcha(token: str, answer: str) -> bool:
+    expected = _captcha_store.pop(token, None)
+    if not expected:
+        return False
+
+    expected_answer, expires_at = expected
+    if expires_at <= now_utc():
+        return False
+
+    return answer.strip() == expected_answer
 
 
 def _prune_attempts(key: str, store: dict[str, list[datetime]]) -> list[datetime]:

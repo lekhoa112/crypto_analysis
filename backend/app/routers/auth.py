@@ -10,6 +10,7 @@ from app.db import get_db
 from app.dependencies import current_user
 from app.models import User
 from app.schemas_auth import (
+    CaptchaChallenge,
     ForgotPasswordRequest,
     LoginRequest,
     LogoutRequest,
@@ -24,9 +25,11 @@ from app.services.auth import (
     ClientContext,
     FORGOT_PASSWORD_MESSAGE,
     GENERIC_LOGIN_ERROR,
+    LOCKED_LOGIN_ERROR,
     check_register_rate_limit,
     clear_login_failures,
     create_access_token,
+    create_captcha_challenge,
     create_password_reset_token,
     create_refresh_token,
     find_password_reset_token,
@@ -39,6 +42,7 @@ from app.services.auth import (
     refresh_token_is_valid,
     revoke_all_user_refresh_tokens,
     revoke_refresh_token,
+    verify_captcha,
     verify_password,
     write_security_log,
 )
@@ -53,9 +57,21 @@ def request_context(request: Request) -> ClientContext:
     return ClientContext(ip_address=ip_address, user_agent=request.headers.get("user-agent"))
 
 
+def require_valid_captcha(token: str, answer: str) -> None:
+    if not verify_captcha(token, answer):
+        raise HTTPException(status_code=400, detail="Captcha khong hop le hoac da het han")
+
+
+@router.get("/captcha", response_model=CaptchaChallenge)
+async def captcha() -> CaptchaChallenge:
+    token, question, expires_in = create_captcha_challenge()
+    return CaptchaChallenge(token=token, question=question, expires_in=expires_in)
+
+
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)) -> User:
     context = request_context(request)
+    require_valid_captcha(payload.captcha_token, payload.captcha_answer)
     if not check_register_rate_limit(context.ip_address):
         raise HTTPException(status_code=429, detail="Không thể xử lý yêu cầu lúc này")
 
@@ -82,18 +98,24 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
 @router.post("/login", response_model=TokenPair)
 async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)) -> TokenPair:
     context = request_context(request)
+    require_valid_captcha(payload.captcha_token, payload.captcha_answer)
     email = payload.email.lower()
 
     if is_login_locked(email, context.ip_address):
         await write_security_log(db, "account_locked", context)
         await db.commit()
-        raise HTTPException(status_code=401, detail=GENERIC_LOGIN_ERROR)
+        raise HTTPException(status_code=423, detail=LOCKED_LOGIN_ERROR)
 
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
+    if user and user.locked_until and user.locked_until > now_utc():
+        await write_security_log(db, "account_locked", context, user.id)
+        await db.commit()
+        raise HTTPException(status_code=423, detail=LOCKED_LOGIN_ERROR)
+
     valid_password = bool(user and verify_password(payload.password, user.password_hash))
-    user_allowed = bool(user and user.status == "active" and not (user.locked_until and user.locked_until > now_utc()))
+    user_allowed = bool(user and user.status == "active")
 
     if not valid_password or not user_allowed:
         locked = record_login_failure(email, context.ip_address)
@@ -106,6 +128,8 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
         else:
             await write_security_log(db, "login_failed", context)
         await db.commit()
+        if locked:
+            raise HTTPException(status_code=423, detail=LOCKED_LOGIN_ERROR)
         raise HTTPException(status_code=401, detail=GENERIC_LOGIN_ERROR)
 
     clear_login_failures(email, context.ip_address)

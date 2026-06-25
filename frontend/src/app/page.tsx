@@ -202,8 +202,27 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: User) => void
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaQuestion, setCaptchaQuestion] = useState("Loading...");
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  async function loadCaptcha() {
+    try {
+      const challenge = await api.captcha();
+      setCaptchaToken(challenge.token);
+      setCaptchaQuestion(challenge.question);
+      setCaptchaAnswer("");
+    } catch {
+      setCaptchaToken("");
+      setCaptchaQuestion("Captcha unavailable");
+    }
+  }
+
+  useEffect(() => {
+    loadCaptcha();
+  }, [mode]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -217,14 +236,22 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: User) => void
           password,
           confirm_password: confirmPassword,
           full_name: fullName || undefined,
+          captcha_token: captchaToken,
+          captcha_answer: captchaAnswer,
         });
       }
 
-      const tokens = await api.login({ email, password });
+      const tokens = await api.login({
+        email,
+        password,
+        captcha_token: captchaToken,
+        captcha_answer: captchaAnswer,
+      });
       setAuthTokens(tokens);
       onAuthenticated(await api.me());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
+      loadCaptcha();
     } finally {
       setBusy(false);
     }
@@ -315,6 +342,29 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: User) => void
                 />
               </label>
             ) : null}
+
+            <label className="grid gap-2 text-sm font-bold text-crypto-muted">
+              Captcha
+              <div className="grid grid-cols-[1fr_44px] gap-2">
+                <span className="flex h-11 items-center rounded-panel border border-white/10 bg-white/5 px-3 text-sm font-black text-crypto-text">
+                  {captchaQuestion}
+                </span>
+                <button
+                  type="button"
+                  onClick={loadCaptcha}
+                  className="h-11 rounded-panel border border-white/10 bg-white/5 text-lg font-black text-crypto-text"
+                >
+                  ↻
+                </button>
+              </div>
+              <input
+                value={captchaAnswer}
+                onChange={(event) => setCaptchaAnswer(event.target.value)}
+                className="h-11 rounded-panel border border-white/10 bg-white/5 px-3 text-crypto-text outline-none focus:border-crypto-primary"
+                required
+                inputMode="numeric"
+              />
+            </label>
           </div>
 
           {error ? (

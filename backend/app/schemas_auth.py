@@ -9,6 +9,8 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8)
     confirm_password: str = Field(min_length=8)
     full_name: str | None = Field(default=None, max_length=160)
+    captcha_token: str
+    captcha_answer: str
 
     @model_validator(mode="after")
     def passwords_match(self) -> "RegisterRequest":
@@ -20,6 +22,14 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    captcha_token: str
+    captcha_answer: str
+
+
+class CaptchaChallenge(BaseModel):
+    token: str
+    question: str
+    expires_in: int
 
 
 class TokenPair(BaseModel):

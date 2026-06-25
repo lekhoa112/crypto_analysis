@@ -46,6 +46,15 @@
           <input id="authConfirmPassword" type="password" autocomplete="new-password" />
         </label>
 
+        <label class="auth-field">
+          Captcha
+          <div class="captcha-row">
+            <span id="captchaQuestion">Loading...</span>
+            <button id="captchaRefresh" type="button" title="Refresh captcha">↻</button>
+          </div>
+          <input id="captchaAnswer" type="text" inputmode="numeric" autocomplete="off" required />
+        </label>
+
         <div class="auth-error" id="authError" hidden></div>
         <button class="auth-submit" id="authSubmit" type="submit">Login</button>
       </form>

@@ -77,6 +77,10 @@ button {
   display: none !important;
 }
 
+.auth-register-only[hidden] {
+  display: none !important;
+}
+
 .auth-copy h1 {
   margin: 24px 0 14px;
   font-size: 44px;
@@ -141,6 +145,33 @@ button {
 
 .auth-field input:focus {
   border-color: rgba(25, 210, 127, 0.72);
+}
+
+.captcha-row {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  gap: 8px;
+}
+
+.captcha-row span,
+.captcha-row button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.captcha-row span {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.captcha-row button {
+  color: var(--ink);
+  font-size: 20px;
 }
 
 .auth-error {
