@@ -13,7 +13,45 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <section class="auth-screen" id="authScreen">
+      <div class="auth-copy">
+        <div class="brand-mark">BTC</div>
+        <h1>Crypto AI Radar</h1>
+        <p>Login to access the dashboard, wallet tools, whale alerts, and settings.</p>
+      </div>
+
+      <form class="auth-card" id="authForm">
+        <div class="auth-tabs">
+          <button class="active" type="button" data-auth-mode="login">Login</button>
+          <button type="button" data-auth-mode="register">Register</button>
+        </div>
+
+        <label class="auth-field auth-register-only" hidden>
+          Full name
+          <input id="authFullName" type="text" autocomplete="name" />
+        </label>
+
+        <label class="auth-field">
+          Email
+          <input id="authEmail" type="email" autocomplete="email" required />
+        </label>
+
+        <label class="auth-field">
+          Password
+          <input id="authPassword" type="password" autocomplete="current-password" required />
+        </label>
+
+        <label class="auth-field auth-register-only" hidden>
+          Confirm password
+          <input id="authConfirmPassword" type="password" autocomplete="new-password" />
+        </label>
+
+        <div class="auth-error" id="authError" hidden></div>
+        <button class="auth-submit" id="authSubmit" type="submit">Login</button>
+      </form>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
       <aside class="sidebar" aria-label="Điều hướng chính">
         <div class="brand">
           <div class="brand-mark">₿</div>
@@ -64,6 +102,7 @@
               ↻
             </button>
             <button class="primary-button" type="button">Tạo cảnh báo</button>
+            <button class="secondary-button" id="logoutBtn" type="button">Logout</button>
           </div>
         </header>
 

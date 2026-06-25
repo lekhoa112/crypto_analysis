@@ -50,6 +50,111 @@ button {
   min-height: 100vh;
 }
 
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  align-items: center;
+  gap: 44px;
+  width: min(100% - 40px, 1120px);
+  margin: 0 auto;
+  padding: 44px 0;
+}
+
+.auth-screen[hidden] {
+  display: none !important;
+}
+
+.auth-copy h1 {
+  margin: 24px 0 14px;
+  font-size: 44px;
+}
+
+.auth-copy p {
+  max-width: 560px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.auth-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.auth-tabs button {
+  height: 38px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.auth-tabs button.active {
+  background: var(--green);
+  color: #03101d;
+}
+
+.auth-field {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auth-field input {
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  padding: 0 12px;
+  outline: none;
+}
+
+.auth-field input:focus {
+  border-color: rgba(25, 210, 127, 0.72);
+}
+
+.auth-error {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 77, 94, 0.4);
+  border-radius: 8px;
+  background: var(--red-soft);
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auth-submit {
+  height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--green);
+  color: #03101d;
+  font-weight: 900;
+}
+
+.auth-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -265,6 +370,7 @@ h2 {
 
 .icon-button,
 .primary-button,
+.secondary-button,
 .alert-form button,
 .portfolio-form button,
 .wallet-form button {
@@ -297,6 +403,14 @@ h2 {
   align-items: center;
   justify-content: center;
   text-decoration: none;
+}
+
+.secondary-button {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
 }
 
 .market-strip {
@@ -902,6 +1016,16 @@ h2 {
 }
 
 @media (max-width: 1120px) {
+  .auth-screen {
+    grid-template-columns: 1fr;
+    align-content: center;
+  }
+
+  .auth-card {
+    max-width: 460px;
+    width: 100%;
+  }
+
   .app-shell {
     grid-template-columns: 1fr;
   }
@@ -928,6 +1052,15 @@ h2 {
 }
 
 @media (max-width: 680px) {
+  .auth-screen {
+    width: min(100% - 28px, 460px);
+    padding: 28px 0;
+  }
+
+  .auth-copy h1 {
+    font-size: 34px;
+  }
+
   .main,
   .sidebar {
     padding: 18px;

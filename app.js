@@ -195,6 +195,202 @@ const compactCurrency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
+const authApiBase = "http://127.0.0.1:8000";
+const accessTokenKey = "crypto_analysis_access_token";
+const refreshTokenKey = "crypto_analysis_refresh_token";
+let authMode = "login";
+
+function getAuthTokens() {
+  return {
+    accessToken: localStorage.getItem(accessTokenKey),
+    refreshToken: localStorage.getItem(refreshTokenKey),
+  };
+}
+
+function setAuthTokens(tokens) {
+  localStorage.setItem(accessTokenKey, tokens.access_token);
+  localStorage.setItem(refreshTokenKey, tokens.refresh_token);
+}
+
+function clearAuthTokens() {
+  localStorage.removeItem(accessTokenKey);
+  localStorage.removeItem(refreshTokenKey);
+}
+
+async function authRequest(path, options = {}, includeAuth = true) {
+  const { accessToken } = getAuthTokens();
+  const response = await fetch(`${authApiBase}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(includeAuth && accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `HTTP ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+async function refreshAuthToken() {
+  const { refreshToken } = getAuthTokens();
+  if (!refreshToken) return false;
+
+  try {
+    const tokens = await authRequest(
+      "/auth/refresh",
+      { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) },
+      false,
+    );
+    setAuthTokens(tokens);
+    return true;
+  } catch (error) {
+    clearAuthTokens();
+    return false;
+  }
+}
+
+function showAuthError(message) {
+  const error = document.querySelector("#authError");
+  if (!error) return;
+  error.textContent = message;
+  error.hidden = !message;
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.authMode === mode);
+  });
+  document.querySelectorAll(".auth-register-only").forEach((field) => {
+    field.hidden = mode !== "register";
+  });
+
+  const submit = document.querySelector("#authSubmit");
+  if (submit) submit.textContent = mode === "register" ? "Create account" : "Login";
+
+  const password = document.querySelector("#authPassword");
+  const confirmPassword = document.querySelector("#authConfirmPassword");
+  if (password) password.minLength = mode === "register" ? 8 : 0;
+  if (confirmPassword) confirmPassword.required = mode === "register";
+}
+
+function showApp() {
+  const authScreen = document.querySelector("#authScreen");
+  const appShell = document.querySelector("#appShell");
+  if (authScreen) authScreen.hidden = true;
+  if (appShell) appShell.hidden = false;
+  loadWhaleModule();
+  connectWhaleSocket();
+}
+
+function showLogin() {
+  const authScreen = document.querySelector("#authScreen");
+  const appShell = document.querySelector("#appShell");
+  if (authScreen) authScreen.hidden = false;
+  if (appShell) appShell.hidden = true;
+  if (whaleSocket) {
+    whaleSocket.close();
+    whaleSocket = null;
+  }
+}
+
+async function initAuthGate() {
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setAuthMode(button.dataset.authMode || "login");
+      showAuthError("");
+    });
+  });
+
+  const form = document.querySelector("#authForm");
+  if (form) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const submit = document.querySelector("#authSubmit");
+      const email = document.querySelector("#authEmail").value.trim();
+      const password = document.querySelector("#authPassword").value;
+      showAuthError("");
+      if (submit) submit.disabled = true;
+
+      try {
+        if (authMode === "register") {
+          await authRequest(
+            "/auth/register",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                email,
+                password,
+                confirm_password: document.querySelector("#authConfirmPassword").value,
+                full_name: document.querySelector("#authFullName").value.trim() || undefined,
+              }),
+            },
+            false,
+          );
+        }
+
+        const tokens = await authRequest(
+          "/auth/login",
+          { method: "POST", body: JSON.stringify({ email, password }) },
+          false,
+        );
+        setAuthTokens(tokens);
+        await authRequest("/auth/me");
+        showApp();
+      } catch (error) {
+        showAuthError(error.message || "Authentication failed");
+      } finally {
+        if (submit) submit.disabled = false;
+      }
+    });
+  }
+
+  const logout = document.querySelector("#logoutBtn");
+  if (logout) {
+    logout.addEventListener("click", async () => {
+      const { refreshToken } = getAuthTokens();
+      if (refreshToken) {
+        try {
+          await authRequest(
+            "/auth/logout",
+            { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) },
+            false,
+          );
+        } catch (error) {
+          console.warn(error);
+        }
+      }
+      clearAuthTokens();
+      showLogin();
+    });
+  }
+
+  setAuthMode("login");
+
+  try {
+    await authRequest("/auth/me");
+    showApp();
+  } catch (error) {
+    const refreshed = await refreshAuthToken();
+    if (refreshed) {
+      try {
+        await authRequest("/auth/me");
+        showApp();
+        return;
+      } catch {
+        clearAuthTokens();
+      }
+    }
+    showLogin();
+  }
+}
+
 const chart = {
   canvas: document.querySelector("#priceChart"),
   range: "1H",
@@ -1178,14 +1374,23 @@ const whaleApiBase = "http://127.0.0.1:8000";
 const whaleWsUrl = "ws://127.0.0.1:8000/ws/alerts";
 let whaleSocket = null;
 
-async function whaleRequest(path, options = {}) {
+async function whaleRequest(path, options = {}, retryOnUnauthorized = true) {
+  const { accessToken } = getAuthTokens();
   const response = await fetch(`${whaleApiBase}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(options.headers || {}),
     },
   });
+
+  if (response.status === 401 && retryOnUnauthorized) {
+    const refreshed = await refreshAuthToken();
+    if (refreshed) return whaleRequest(path, options, false);
+    clearAuthTokens();
+    showLogin();
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -1413,5 +1618,4 @@ function bindWhaleForms() {
 }
 
 bindWhaleForms();
-loadWhaleModule();
-connectWhaleSocket();
+initAuthGate();
