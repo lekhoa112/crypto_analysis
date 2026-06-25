@@ -1,0 +1,10 @@
+{
+  "tx_hash": "0xfakewhale000000000000000000000000000000000000000000000000000001",
+  "chain": "ethereum",
+  "wallet_address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+  "token_symbol": "ETH",
+  "token_address": null,
+  "amount": 420.5,
+  "usd_value": 1450000,
+  "direction": "outgoing"
+}

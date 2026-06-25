@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crypto AI Radar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Điều hướng chính">
+        <div class="brand">
+          <div class="brand-mark">₿</div>
+          <div>
+            <strong>Crypto AI Radar</strong>
+            <span>Live market terminal</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <span class="nav-group">Market</span>
+          <a class="nav-item active" href="#dashboard" data-view="dashboard"><span>⌁</span>Dashboard</a>
+          <a class="nav-item" href="#technical" data-view="technical"><span>◴</span>Chỉ báo</a>
+          <a class="nav-item" href="#ai" data-view="ai"><span>✦</span>AI phân tích</a>
+          <a class="nav-item" href="#market" data-view="market"><span>▦</span>Top coin</a>
+          <span class="nav-group">Automation</span>
+          <a class="nav-item" href="#alerts" data-view="alerts"><span>⏱</span>Cảnh báo</a>
+          <a class="nav-item" href="#whale-alert" data-view="whale-alert"><span>◆</span>Whale Alert</a>
+          <span class="nav-group">Wallet</span>
+          <a class="nav-item" href="#portfolio" data-view="portfolio"><span>▣</span>Portfolio</a>
+          <a class="nav-item" href="#wallet-analysis" data-view="wallet-analysis"><span>◎</span>Quét ví</a>
+        </nav>
+
+        <div class="sidebar-panel">
+          <span class="panel-label">Fear & Greed</span>
+          <div class="sentiment-score">
+            <strong id="fearGreed">72</strong>
+            <span>Greed</span>
+          </div>
+          <div class="meter" aria-hidden="true">
+            <span style="width: 72%"></span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">AI crypto market intelligence</p>
+            <h1 id="viewTitle">Real-time crypto sentiment analysis</h1>
+          </div>
+          <div class="topbar-actions">
+            <span class="system-pill"><i></i> API</span>
+            <span class="system-pill"><i></i> WS</span>
+            <span class="model-chip" id="apiStatus">Demo data</span>
+            <span class="model-chip" id="autoStatus">Auto 1s</span>
+            <button class="icon-button" id="refreshBtn" type="button" title="Làm mới dữ liệu">
+              ↻
+            </button>
+            <button class="primary-button" type="button">Tạo cảnh báo</button>
+          </div>
+        </header>
+
+        <section class="market-strip app-view" id="dashboard" aria-label="Tổng quan thị trường">
+          <article class="asset-card btc">
+            <div class="asset-head">
+              <div>
+                <span class="asset-symbol">BTC</span>
+                <h2>Bitcoin</h2>
+              </div>
+              <span class="trend-badge up" id="btcTrend">Tăng</span>
+            </div>
+            <strong class="price" id="btcPrice">$108,240</strong>
+            <div class="metric-row">
+              <span>24h</span>
+              <strong class="positive" id="btcChange">+2.84%</strong>
+            </div>
+            <div class="metric-grid">
+              <div>
+                <span>Volume</span>
+                <strong id="btcVolume">$54.8B</strong>
+              </div>
+              <div>
+                <span>Market Cap</span>
+                <strong id="btcCap">$2.13T</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="asset-card eth">
+            <div class="asset-head">
+              <div>
+                <span class="asset-symbol">ETH</span>
+                <h2>Ethereum</h2>
+              </div>
+              <span class="trend-badge neutral" id="ethTrend">Trung lập</span>
+            </div>
+            <strong class="price" id="ethPrice">$6,210</strong>
+            <div class="metric-row">
+              <span>24h</span>
+              <strong class="positive" id="ethChange">+1.16%</strong>
+            </div>
+            <div class="metric-grid">
+              <div>
+                <span>Volume</span>
+                <strong id="ethVolume">$24.2B</strong>
+              </div>
+              <div>
+                <span>Dominance</span>
+                <strong id="ethDominance">18.6%</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="summary-panel">
+            <span class="panel-label">Tổng quan AI</span>
+            <h2>Dòng tiền vẫn ưu tiên BTC, ETH bắt đầu phục hồi</h2>
+            <p>
+              BTC đang giữ trên EMA 200, volume tăng đều. ETH chưa phá vùng kháng cự gần nhất
+              nhưng động lượng đã cải thiện.
+            </p>
+            <div class="signal-list">
+              <span>BTC: <strong class="positive">Ưu tiên tăng</strong></span>
+              <span>ETH: <strong>Đi ngang tích lũy</strong></span>
+            </div>
+          </article>
+        </section>
+
+        <section class="content-grid app-view" id="market-analysis">
+          <article class="tool-panel price-panel">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">Biểu đồ giá</p>
+                <h2>BTC / ETH price action</h2>
+              </div>
+              <div class="toolbar-group">
+                <div class="segmented" role="tablist" aria-label="Khung thời gian">
+                  <button class="active" data-range="1H" type="button">1H</button>
+                  <button data-range="4H" type="button">4H</button>
+                  <button data-range="1D" type="button">1D</button>
+                  <button data-range="1W" type="button">1W</button>
+                </div>
+                <div class="segmented coin-toggle" role="tablist" aria-label="Coin">
+                  <button class="active" data-chart-coin="BTCUSDT" type="button">BTC</button>
+                  <button data-chart-coin="ETHUSDT" type="button">ETH</button>
+                </div>
+              </div>
+            </div>
+            <span class="chart-status" id="chartStatus">Đang tải biểu đồ...</span>
+            <canvas id="priceChart" width="920" height="360" aria-label="Biểu đồ giá"></canvas>
+          </article>
+
+          <article class="tool-panel" id="technical">
+            <div class="section-head compact">
+              <div>
+                <p class="eyebrow">Chỉ báo kỹ thuật</p>
+                <h2>BTC momentum</h2>
+              </div>
+              <span class="trend-badge up">Bullish</span>
+            </div>
+            <div class="indicator-list" id="indicatorList"></div>
+          </article>
+        </section>
+
+        <section class="content-grid lower app-view" id="signal-workbench">
+          <article class="tool-panel ai-panel" id="ai">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow">AI phân tích</p>
+                <h2>Luận điểm thị trường</h2>
+              </div>
+              <span class="model-chip">AI Signal v1</span>
+            </div>
+            <div class="ai-copy" id="aiCopy">
+              <p>
+                BTC đang nằm trên EMA 20, EMA 50 và EMA 200. RSI ở mức 65 cho thấy xu hướng
+                ngắn hạn còn tích cực nhưng chưa phải vùng mua rủi ro thấp.
+              </p>
+              <p>
+                ETH đang đi ngang dưới kháng cự, phù hợp với chiến lược chờ breakout hoặc chờ
+                retest hỗ trợ trước khi tăng tỷ trọng.
+              </p>
+            </div>
+          </article>
+
+          <article class="tool-panel alerts-panel" id="alerts">
+            <div class="section-head compact">
+              <div>
+                <p class="eyebrow">Cảnh báo giá</p>
+                <h2>Watch triggers</h2>
+              </div>
+            </div>
+            <form class="alert-form" id="alertForm">
+              <select id="alertCoin" aria-label="Coin">
+                <option value="BTC">BTC</option>
+                <option value="ETH">ETH</option>
+              </select>
+              <select id="alertRule" aria-label="Điều kiện">
+                <option value=">">Lớn hơn</option>
+                <option value="<">Nhỏ hơn</option>
+              </select>
+              <input id="alertPrice" type="number" min="1" placeholder="120000" aria-label="Giá" />
+              <button type="submit">Thêm</button>
+            </form>
+            <div class="alerts-list" id="alertsList"></div>
+          </article>
+        </section>
+
+        <section class="tool-panel full-panel app-view" id="whale-alert" hidden>
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Whale Alert</p>
+              <h2>Theo dõi ví cá voi và cảnh báo giao dịch lớn</h2>
+            </div>
+            <span class="model-chip" id="whaleStatus">Đang kết nối</span>
+          </div>
+
+          <div class="module-stats">
+            <div>
+              <span>Tracked wallets</span>
+              <strong id="whaleWalletCount">0</strong>
+            </div>
+            <div>
+              <span>Alert history</span>
+              <strong id="whaleAlertCount">0</strong>
+            </div>
+            <div>
+              <span>Threshold</span>
+              <strong id="whaleThresholdValue">$100K</strong>
+            </div>
+          </div>
+
+          <div class="whale-layout">
+            <form class="whale-form" id="whaleWalletForm">
+              <input id="whaleAddress" type="text" placeholder="Địa chỉ ví cá voi 0x..." aria-label="Địa chỉ ví cá voi" />
+              <select id="whaleChain" aria-label="Chain">
+                <option value="ethereum">Ethereum</option>
+                <option value="bsc">BNB Chain</option>
+                <option value="polygon">Polygon</option>
+                <option value="solana">Solana</option>
+              </select>
+              <input id="whaleLabel" type="text" placeholder="Nhãn ví" aria-label="Nhãn ví" />
+              <button type="submit">Thêm ví</button>
+            </form>
+
+            <form class="threshold-form" id="whaleThresholdForm">
+              <label for="whaleThreshold">Ngưỡng alert USD</label>
+              <input id="whaleThreshold" type="number" min="0" step="1000" placeholder="100000" />
+              <button type="submit">Lưu</button>
+            </form>
+          </div>
+
+          <div class="whale-grid">
+            <article class="whale-box">
+              <div class="section-head compact">
+                <div>
+                  <p class="eyebrow">Wallet list</p>
+                  <h2>Ví đang theo dõi</h2>
+                </div>
+              </div>
+              <div class="whale-list" id="whaleWalletList"></div>
+            </article>
+
+            <article class="whale-box">
+              <div class="section-head compact">
+                <div>
+                  <p class="eyebrow">Realtime</p>
+                  <h2>Alert mới</h2>
+                </div>
+              </div>
+              <div class="whale-list" id="whaleAlertList"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="tool-panel full-panel app-view" id="portfolio" hidden>
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Theo dõi ví</p>
+              <h2>Portfolio tracker</h2>
+            </div>
+            <div class="portfolio-total">
+              <span>Tổng giá trị</span>
+              <strong id="portfolioValue">$0</strong>
+            </div>
+          </div>
+
+          <form class="portfolio-form" id="portfolioForm">
+            <select id="holdingCoin" aria-label="Coin">
+              <option value="BTC">BTC</option>
+              <option value="ETH">ETH</option>
+              <option value="SOL">SOL</option>
+              <option value="BNB">BNB</option>
+              <option value="XRP">XRP</option>
+              <option value="DOGE">DOGE</option>
+              <option value="ADA">ADA</option>
+              <option value="AVAX">AVAX</option>
+              <option value="LINK">LINK</option>
+              <option value="SUI">SUI</option>
+            </select>
+            <input id="holdingAmount" type="number" step="any" min="0" placeholder="Số lượng" aria-label="Số lượng" />
+            <input id="holdingAvg" type="number" step="any" min="0" placeholder="Giá mua TB" aria-label="Giá mua trung bình" />
+            <button type="submit">Thêm vào ví</button>
+          </form>
+
+          <div class="portfolio-table-wrap">
+            <table class="portfolio-table">
+              <thead>
+                <tr>
+                  <th>Coin</th>
+                  <th>Số lượng</th>
+                  <th>Giá hiện tại</th>
+                  <th>Giá trị</th>
+                  <th>Lãi/Lỗ</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="portfolioRows"></tbody>
+            </table>
+          </div>
+
+          <div class="wallet-note">
+            <strong>Theo dõi địa chỉ ví</strong>
+            <span>Có thể nối Etherscan/BscScan/Solana RPC để đọc token thật từ địa chỉ ví.</span>
+          </div>
+        </section>
+
+        <section class="tool-panel full-panel app-view" id="wallet-analysis" hidden>
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Phân tích ví</p>
+              <h2>Wallet scanner</h2>
+            </div>
+            <span class="model-chip" id="walletStatus">Chưa quét</span>
+          </div>
+
+          <form class="wallet-form" id="walletForm">
+            <select id="walletNetwork" aria-label="Network">
+              <option value="ethereum">Ethereum</option>
+              <option value="bsc">BNB Chain</option>
+              <option value="solana">Solana</option>
+            </select>
+            <input
+              id="walletAddress"
+              type="text"
+              placeholder="Dán địa chỉ ví hoặc link Etherscan"
+              aria-label="Địa chỉ ví"
+              autocomplete="off"
+            />
+            <input
+              id="etherscanApiKey"
+              type="password"
+              placeholder="Etherscan API key nếu có"
+              aria-label="Etherscan API key"
+              autocomplete="off"
+            />
+            <button type="submit">Quét ví</button>
+          </form>
+
+          <div class="wallet-summary-grid">
+            <div>
+              <span>Native balance</span>
+              <strong id="walletNativeBalance">-</strong>
+            </div>
+            <div>
+              <span>Ước tính USD</span>
+              <strong id="walletUsdValue">-</strong>
+            </div>
+            <div>
+              <span>Số token tìm thấy</span>
+              <strong id="walletTokenCount">-</strong>
+            </div>
+          </div>
+
+          <div class="wallet-table-wrap">
+            <table class="portfolio-table">
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>Số dư</th>
+                  <th>Giá</th>
+                  <th>Giá trị</th>
+                  <th>Nguồn</th>
+                </tr>
+              </thead>
+              <tbody id="walletAssetRows"></tbody>
+            </table>
+          </div>
+
+          <div class="wallet-note">
+            <strong>Token trong ví</strong>
+            <span id="walletHelp">
+              Dán link Etherscan dạng https://etherscan.io/address/0x... hoặc địa chỉ ví trực tiếp.
+            </span>
+            <a id="walletExplorerLink" href="https://etherscan.io" target="_blank" rel="noreferrer">Mở explorer</a>
+          </div>
+        </section>
+
+        <section class="tool-panel full-panel app-view" id="market" hidden>
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Market flow</p>
+              <h2>Top coin heatmap và dòng tiền</h2>
+            </div>
+          </div>
+          <div class="coin-grid" id="coinGrid"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

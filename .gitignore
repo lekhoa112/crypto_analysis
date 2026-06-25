@@ -1,0 +1,29 @@
+.idea/
+
+# Runtime logs
+*.log
+
+# Environment and local secrets
+.env
+*.env.local
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+backend/.venv/
+.pytest_cache/
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+out/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db

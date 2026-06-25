@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  background: #0A0F1C;
+}
+
+body {
+  margin: 0;
+  background: #0A0F1C;
+  color: #FFFFFF;
+}
+
+input,
+select {
+  color-scheme: dark;
+}
